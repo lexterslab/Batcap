@@ -1,0 +1,73 @@
+{
+  "comfyui_path": "/home/lexter/ComfyUI",
+  "output": {
+    "path": "",
+    "overwrite": false
+  },
+  "image_processing": {
+    "max_pixels": 1048576
+  },
+  "models": {
+    "jtp_pilot2": {
+      "model": "RedRocket PILOT v2",
+      "mode": "topk",
+      "topk": 60,
+      "threshold": 0.25,
+      "steps": 255,
+      "max_tags": 0,
+      "implications_mode": "constrain",
+      "exclude_tags": "male*, *artwork*",
+      "exclude_categories": "style",
+      "replace_underscore": false,
+      "trailing_comma": false,
+      "prefix": ""
+    },
+    "jtp3_hydra": {
+      "model": "jtp-3-hydra",
+      "mode": "topk",
+      "topk": 70,
+      "threshold": 0.35,
+      "max_tags": 0,
+      "cam_depth": 1,
+      "seqlen": 1024,
+      "implications_mode": "constrain",
+      "exclude_tags": "male*, *artwork*",
+      "exclude_categories": "style",
+      "replace_underscore": false,
+      "trailing_comma": false,
+      "original_tags": false,
+      "cam_mode": "none",
+      "cam_tag": "",
+      "prefix": ""
+    },
+    "dinov3": {
+      "model": "tagger-proto",
+      "mode": "topk",
+      "topk": 70,
+      "threshold": 0.85,
+      "max_size": 1024,
+      "implications_mode": "off",
+      "max_tags": 0,
+      "exclude_tags": "male*, *artwork*",
+      "exclude_categories": "style",
+      "trailing_comma": false,
+      "prefix": "",
+      "use_aliases": true,
+      "check_updates": false
+    },
+    "qwen": {
+      "model_file": "Qwen/Qwen3.5-9B-Uncensored-merged.safetensors",
+      "quant_format": "auto",
+      "kernel_backend": "pytorch",
+      "max_length": 1024,
+      "temperature": 0.7,
+      "top_k": 64,
+      "top_p": 0.95,
+      "min_p": 0.05,
+      "repetition_penalty": 1.05,
+      "presence_penalty": 0.0,
+      "seed": 0,
+      "thinking": false
+    }
+  }
+}
