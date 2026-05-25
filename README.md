@@ -33,8 +33,8 @@ A desktop application for batch-tagging and captioning images using three specia
 ## Installation
 
 ```bash
-# 1. Clone or copy the captioner folder into your ComfyUI installation
-cp -r captioner/ /path/to/ComfyUI/captioner/
+# 1. Clone or copy the captioner folder where you want
+cp -r captioner/ /path/to/captioner/
 
 # 2. Edit config/settings.json and set your ComfyUI path
 #    (the default assumes /home/<user>/ComfyUI)
