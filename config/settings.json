@@ -20,7 +20,8 @@
       "exclude_categories": "style",
       "replace_underscore": false,
       "trailing_comma": false,
-      "prefix": ""
+      "prefix": "",
+      "enabled": true
     },
     "jtp3_hydra": {
       "model": "jtp-3-hydra",
@@ -38,7 +39,8 @@
       "original_tags": false,
       "cam_mode": "none",
       "cam_tag": "",
-      "prefix": ""
+      "prefix": "",
+      "enabled": true
     },
     "dinov3": {
       "model": "tagger-proto",
@@ -53,7 +55,8 @@
       "trailing_comma": false,
       "prefix": "",
       "use_aliases": true,
-      "check_updates": false
+      "check_updates": false,
+      "enabled": true
     },
     "qwen": {
       "model_file": "Qwen/Qwen3.5-9B-Uncensored-merged.safetensors",
@@ -68,6 +71,16 @@
       "presence_penalty": 0.0,
       "seed": 0,
       "thinking": false
+    },
+    "wd_eva02": {
+      "enabled": true,
+      "model_id": "SmilingWolf/wd-eva02-large-tagger-v3",
+      "mode": "topk",
+      "topk": 60,
+      "threshold": 0.35,
+      "threshold_character": 0.75,
+      "max_tags": 0,
+      "exclude_tags": "male*, *artwork*"
     }
   }
 }

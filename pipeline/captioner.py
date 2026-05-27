@@ -304,14 +304,21 @@ def _get_clip():
 
 
 def unload_model() -> None:
-    """Gibt das Modell aus dem VRAM frei."""
+    """Gibt Qwen vollständig aus dem VRAM frei."""
     global _clip_model, _clip_model_file
     if _clip_model is not None:
-        import comfy.model_management
-        comfy.model_management.soft_empty_cache()
+        try:
+            import comfy.model_management, torch
+            comfy.model_management.unload_all_models()
+            comfy.model_management.soft_empty_cache()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+                torch.cuda.synchronize()
+        except Exception as e:
+            logger.debug("Qwen-Unload: %s", e)
         _clip_model      = None
         _clip_model_file = None
-        logger.info("Modell aus VRAM entladen.")
+        logger.info("Qwen aus VRAM entladen.")
 
 
 # ---------------------------------------------------------------------------
@@ -421,19 +428,28 @@ def generate_caption(
         thinking       = qwen_cfg.get("thinking", False),
     )
 
-    clip = _get_clip()
-
-    # Tagger-Modelle aus dem VRAM eviktieren — DINOv3 allein ist ~5 GB.
-    # Nach dem Tagging sind sie noch gecacht. unload_all_models() schiebt
-    # alles auf CPU, dann bekommt Qwen beim nächsten load_models_gpu() den
-    # vollen VRAM (ComfyUI lädt es beim generate() automatisch neu).
+    # Qwen noch nicht geladen? → Tagger-Modelle zuerst entladen.
+    # (Tagger ~5–6 GB + Qwen ~14 GB > 15,8 GB VRAM)
+    # Beim zweiten und weiteren Bildern im Batch bleibt Qwen auf der GPU —
+    # kein unnötiger CPU↔GPU-Transfer zwischen Captions.
     import comfy.model_management
     import torch
-    comfy.model_management.unload_all_models()
-    comfy.model_management.soft_empty_cache()
-    if torch.cuda.is_available():
-        torch.cuda.synchronize()
 
+    if _clip_model is None:
+        # Erster Aufruf im Batch oder nach Modell-Wechsel:
+        # WD EVA02 (nicht durch ComfyUI verwaltet) explizit entladen
+        try:
+            from pipeline.tagger_wd import unload as _unload_wd
+            _unload_wd()
+        except Exception:
+            pass
+        comfy.model_management.unload_all_models()
+        comfy.model_management.soft_empty_cache()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            torch.cuda.synchronize()
+
+    clip = _get_clip()
     logger.info(f"Generiere Caption (Modus: {key}) …")
 
     # Bild wird NICHT an den Tokenizer übergeben:

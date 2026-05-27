@@ -252,11 +252,14 @@ def setup() -> dict:
     # config.json direkt lesen — KEIN Server-Import, KEIN ComfyLogger
     _load_jt_config(rr_path)
 
-    # folder_paths initialisieren
+    # Modell-Pfade auf captioner/models/taggers/ umstellen
     import folder_paths
 
-    model_basepath = str(Path(folder_paths.models_dir) / "RedRocket")
-    tags_basepath  = str(Path(folder_paths.models_dir) / "RedRocket" / "tags")
+    _app_root      = Path(__file__).parent.parent
+    model_basepath = str(_app_root / "models" / "taggers")
+    tags_basepath  = str(_app_root / "models" / "taggers" / "tags")
+    Path(model_basepath).mkdir(parents=True, exist_ok=True)
+    Path(tags_basepath ).mkdir(parents=True, exist_ok=True)
 
     _init_managers(model_basepath, tags_basepath)
 

@@ -91,6 +91,31 @@ QPushButton#lang_btn {
 }
 QPushButton#lang_btn:hover { background: #4b5563; }
 
+QGroupBox#tagger_toggle_box {
+    font-size: 11px; font-weight: bold;
+    border: 1px solid #374151; border-radius: 6px;
+    margin-top: 6px; padding: 6px 4px 4px 4px;
+}
+QGroupBox#tagger_toggle_box::title {
+    subcontrol-origin: margin; left: 8px; padding: 0 3px;
+    color: #9ca3af;
+}
+QLabel#tagger_lbl {
+    font-size: 10px; color: #d1d5db;
+}
+QPushButton#tagger_toggle {
+    border: none; border-radius: 5px;
+    font-size: 11px; font-weight: bold; min-width: 46px;
+}
+QPushButton#tagger_toggle:checked {
+    background: #22c55e; color: white;
+}
+QPushButton#tagger_toggle:!checked {
+    background: #374151; color: #6b7280;
+}
+QPushButton#tagger_toggle:checked:hover { background: #16a34a; }
+QPushButton#tagger_toggle:!checked:hover { background: #4b5563; }
+
 /* Vorschau-Platzhalter */
 QLabel#preview {
     color: #9ca3af; background: #f3f4f6; border-radius: 6px;
@@ -592,6 +617,45 @@ class MainWindow(QMainWindow):
         row2.addWidget(browse)
         layout.addLayout(row2)
 
+        # ── Tagger ON/OFF-Switches ───────────────────────────────────────────
+        toggle_box = QGroupBox("Tagger")
+        toggle_box.setObjectName("tagger_toggle_box")
+        toggle_lay = QHBoxLayout(toggle_box)
+        toggle_lay.setSpacing(8)
+        self._tagger_toggles: dict[str, QPushButton] = {}
+        _TAGGERS = [
+            ("jtp_pilot2", "JTP v2"),
+            ("jtp3_hydra",  "JTP-3"),
+            ("dinov3",      "DINOv3"),
+            ("wd_eva02",    "WD EVA02"),
+        ]
+        for key, label in _TAGGERS:
+            col = QVBoxLayout()
+            col.setSpacing(2)
+            lbl = QLabel(label)
+            lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            lbl.setObjectName("tagger_lbl")
+            btn = QPushButton("ON")
+            btn.setObjectName("tagger_toggle")
+            btn.setCheckable(True)
+            btn.setFixedHeight(26)
+            # Initialer Zustand aus settings.json
+            try:
+                import json
+                _cfg_path = Path(__file__).parent.parent / "config" / "settings.json"
+                _cfg = json.loads(_cfg_path.read_text())
+                _on  = _cfg["models"].get(key, {}).get("enabled", True)
+            except Exception:
+                _on = True
+            btn.setChecked(_on)
+            btn.setText("ON" if _on else "OFF")
+            btn.clicked.connect(lambda checked, k=key, b=btn: self._on_tagger_toggle(k, b))
+            self._tagger_toggles[key] = btn
+            col.addWidget(lbl)
+            col.addWidget(btn)
+            toggle_lay.addLayout(col)
+        layout.addWidget(toggle_box)
+
         row3 = QHBoxLayout()
         self._tag_btn = QPushButton(tr("btn_tag"))
         self._tag_btn.setObjectName("tag_btn")
@@ -980,6 +1044,26 @@ class MainWindow(QMainWindow):
             self._cap.clear()
             self._save_btn.setEnabled(False)
         self._update_count()
+
+    def _on_tagger_toggle(self, key: str, btn: "QPushButton") -> None:
+        """Schreibt den enabled-Flag in settings.json und aktualisiert Button-Text."""
+        import json
+        checked = btn.isChecked()
+        btn.setText("ON" if checked else "OFF")
+        try:
+            cfg_path = Path(__file__).parent.parent / "config" / "settings.json"
+            cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
+            cfg["models"].setdefault(key, {})["enabled"] = checked
+            cfg_path.write_text(json.dumps(cfg, indent=2, ensure_ascii=False),
+                                encoding="utf-8")
+            # Settings-Cache in tagger.py leeren
+            try:
+                from pipeline.tagger import reload_settings
+                reload_settings()
+            except Exception:
+                pass
+        except Exception as e:
+            self._status.setText(f"Toggle-Fehler: {e}")
 
     def _update_count(self):
         n = len(self.all_paths)

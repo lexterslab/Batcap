@@ -111,6 +111,24 @@ def _images(source: str | list[str]) -> list[Path]:
     return collect_images(source)
 
 
+def _cleanup_taggers() -> None:
+    """Entlädt alle Tagger nach einem Batch. Sicher wenn nichts geladen."""
+    try:
+        from pipeline.tagger import unload_all_taggers
+        unload_all_taggers()
+    except Exception as e:
+        logger.warning("Tagger-Cleanup: %s", e)
+
+
+def _cleanup_captioner() -> None:
+    """Entlädt Qwen nach einem Batch. Sicher wenn nicht geladen."""
+    try:
+        from pipeline.captioner import unload_model
+        unload_model()
+    except Exception as e:
+        logger.warning("Captioner-Cleanup: %s", e)
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Phase 1: Tagging
 # ─────────────────────────────────────────────────────────────────────────────
@@ -139,16 +157,23 @@ def run_tag_batch(
             break
         r = JobResult(image_path=img_path, phase="tag")
         try:
-            image = load_image(img_path)
-            (j2t, j2s), (j3t, j3s), (dt, ds) = run_all(image)
-            merged = merge_all(j2t, j2s, j3t, j3s, dt, ds)
+            image   = load_image(img_path)
+            results = run_all(image)
+            merged  = merge_all(results)
+
+            # Einzelne Tagger-Ergebnisse für .batcap.json auslesen
+            j2t,  j2s  = results.get("jtp_pilot2", ("", {}))
+            j3t,  j3s  = results.get("jtp3_hydra",  ("", {}))
+            dt,   ds   = results.get("dinov3",       ("", {}))
+            wdt,  wds  = results.get("wd_eva02",     ("", {}))
             clean  = clean_tags(merged)
 
             data = _load_state(img_path)
             data.update({
-                "jtp2_tags": j2t, "jtp2_scores": j2s,
-                "jtp3_tags": j3t, "jtp3_scores": j3s,
-                "dino_tags": dt,  "dino_scores": ds,
+                "jtp2_tags":  j2t,  "jtp2_scores":  j2s,
+                "jtp3_tags":  j3t,  "jtp3_scores":  j3s,
+                "dino_tags":  dt,   "dino_scores":  ds,
+                "wd_tags":    wdt,  "wd_scores":    wds,
                 "tags_merged": merged, "tags_clean": clean,
                 "status": "tagged",
             })
@@ -163,6 +188,8 @@ def run_tag_batch(
         state.done += 1
         yield r
 
+    # Tagger nach Batch vollständig entladen
+    _cleanup_taggers()
     state.running = False
 
 
@@ -215,6 +242,8 @@ def run_cap_batch(
         state.done += 1
         yield r
 
+    # Qwen nach Batch vollständig entladen
+    _cleanup_captioner()
     state.running = False
 
 
